@@ -1,0 +1,23 @@
+{% load currency %}
+<section id="cart-region" aria-live="polite">
+  {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+  {% if entries %}
+    <div class="cart-list">
+    {% for entry in entries %}
+      <article class="cart-line">
+        <div class="cart-thumb" aria-hidden="true">FORM</div>
+        <div class="cart-info"><h2><a href="{% url 'product_detail' entry.variant.product.slug %}">{{ entry.variant.product.name }}</a></h2><p>{{ entry.variant.color }} / {{ entry.variant.size }} · {{ entry.variant.sku }}</p><strong>{{ entry.variant.product.price|vnd }}</strong>{% if not entry.available %}<p class="form-error">Hiện không đủ hàng hoặc sản phẩm tạm ngưng.</p>{% endif %}</div>
+        <div class="cart-actions">
+          <form action="{% url 'cart_update' %}" method="post" hx-post="{% url 'cart_update' %}" hx-target="#cart-region" hx-swap="outerHTML">
+            {% csrf_token %}<input type="hidden" name="variant_id" value="{{ entry.variant.id }}"><label for="qty-{{ entry.variant.id }}">Số lượng</label><input id="qty-{{ entry.variant.id }}" name="quantity" type="number" min="0" max="{{ max_quantity }}" value="{{ entry.quantity }}"><button type="submit">Cập nhật</button>
+          </form>
+          <form action="{% url 'cart_remove' %}" method="post" hx-post="{% url 'cart_remove' %}" hx-target="#cart-region" hx-swap="outerHTML">
+            {% csrf_token %}<input type="hidden" name="variant_id" value="{{ entry.variant.id }}"><input type="hidden" name="quantity" value="0"><button class="remove-button" type="submit">Xóa</button>
+          </form>
+        </div>
+      </article>
+    {% endfor %}
+    </div>
+    <div class="cart-summary"><div><span>Tạm tính</span><strong>{{ total|vnd }}</strong></div><p>Phí giao hàng sẽ được tính ở bước đặt hàng.</p><span class="checkout-note">Đặt hàng COD sẽ có ở giai đoạn tiếp theo.</span></div>
+  {% else %}<div class="empty-state"><h2>Giỏ hàng trống</h2><p>Hãy chọn một món đồ phù hợp với bạn.</p><a class="button button-dark" href="{% url 'product_list' %}">Xem sản phẩm</a></div>{% endif %}
+</section>

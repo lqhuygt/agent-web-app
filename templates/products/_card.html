@@ -1,0 +1,14 @@
+{% load currency %}
+<article class="product-card">
+  <a class="product-link" href="{% url 'product_detail' product.slug %}">
+    <div class="product-image">
+      {% with picture=product.images.first %}
+        {% if picture %}<img src="{{ picture.image.url }}" alt="{{ picture.alt_text|default:product.name }}" loading="lazy">
+        {% else %}<span class="image-monogram" aria-hidden="true">FORM</span>{% endif %}
+      {% endwith %}
+    </div>
+    <div class="product-meta"><span>{{ product.category.name }}</span><span>FORM / 0{{ forloop.counter }}</span></div>
+    <h3>{{ product.name }}</h3>
+    <p class="price">{{ product.price|vnd }}</p>
+  </a>
+</article>

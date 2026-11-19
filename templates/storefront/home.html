@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}FORM — Trang chủ{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="shell hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow">FORM / MENSWEAR</p>
+      <h1>Phong cách gọn gàng.<br><em>Tự tin mỗi ngày.</em></h1>
+      <p>Những món đồ nam dễ mặc, được chọn cho nhịp sống hiện đại.</p>
+      <a class="button button-dark" href="{% url 'product_list' %}">Khám phá sản phẩm <span aria-hidden="true">↗</span></a>
+    </div>
+    <div class="hero-art" aria-hidden="true"><div class="hero-shape"></div><span>FORM<br>EVERYDAY</span></div>
+  </div>
+</section>
+<section class="shell section-space">
+  <div class="section-heading"><div><p class="eyebrow">CÁC MẪU MỚI</p><h2>Được chọn cho bạn</h2></div><a class="text-link" href="{% url 'product_list' %}">Xem tất cả ↗</a></div>
+  {% if products %}<div class="product-grid">{% for product in products %}{% include 'products/_card.html' %}{% endfor %}</div>
+  {% else %}<p class="empty-state">Chưa có sản phẩm đang bán. Hãy thêm sản phẩm trong trang quản trị.</p>{% endif %}
+</section>
+<section class="values-strip"><div class="shell values-grid"><div><strong>01</strong><span>Đơn giản để lựa chọn</span></div><div><strong>02</strong><span>Rõ ràng từng biến thể</span></div><div><strong>03</strong><span>Kho cập nhật từ cửa hàng</span></div></div></section>
+{% endblock %}

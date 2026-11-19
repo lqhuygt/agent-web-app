@@ -1,0 +1,29 @@
+{% load static %}
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}FORM — Quần áo nam{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/storefront.css' %}">
+  <script defer src="{% static 'js/htmx.min.js' %}"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Chuyển đến nội dung</a>
+  <div class="announcement">FORM / ĐỒ NAM CHỌN LỌC / GIAO HÀNG TOÀN QUỐC</div>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="{% url 'home' %}" aria-label="FORM, về trang chủ">FORM<span class="brand-dot">.</span></a>
+      <nav aria-label="Điều hướng chính">
+        <a href="{% url 'home' %}">Trang chủ</a>
+        <a href="{% url 'product_list' %}">Sản phẩm</a>
+        <a href="{% url 'cart_page' %}">Giỏ hàng</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main">{% block content %}{% endblock %}</main>
+  <footer class="site-footer">
+    <div class="shell footer-inner"><strong>FORM.</strong><span>Trang thử nghiệm local · Chưa nhận đặt hàng trực tuyến</span></div>
+  </footer>
+</body>
+</html>

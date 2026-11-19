@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Sản phẩm — FORM{% endblock %}
+{% block content %}
+<section class="page-intro shell"><p class="eyebrow">FORM / BỘ SƯU TẬP</p><h1>Tất cả sản phẩm</h1><p>Chọn món đồ phù hợp với cách bạn mặc mỗi ngày.</p></section>
+<div class="shell collection-layout">
+  <aside class="filters" aria-label="Bộ lọc sản phẩm">
+    <h2>Lọc sản phẩm</h2>
+    <form method="get" action="{% url 'product_list' %}">
+      <label for="search-q">Tìm kiếm</label><input id="search-q" type="search" name="q" value="{{ filters.q|default:'' }}" placeholder="Tên sản phẩm">
+      <label for="category">Danh mục</label><select id="category" name="category"><option value="">Tất cả</option>{% for category in categories %}<option value="{{ category.slug }}" {% if filters.category == category.slug %}selected{% endif %}>{{ category.name }}</option>{% endfor %}</select>
+      <div class="filter-price"><div><label for="min-price">Giá từ</label><input id="min-price" type="number" min="0" step="1" name="min_price" value="{{ filters.min_price|default:'' }}"></div><div><label for="max-price">Giá đến</label><input id="max-price" type="number" min="0" step="1" name="max_price" value="{{ filters.max_price|default:'' }}"></div></div>
+      <label for="sort">Sắp xếp</label><select id="sort" name="sort"><option value="newest" {% if filters.sort == 'newest' %}selected{% endif %}>Mới nhất</option><option value="price_asc" {% if filters.sort == 'price_asc' %}selected{% endif %}>Giá thấp đến cao</option><option value="price_desc" {% if filters.sort == 'price_desc' %}selected{% endif %}>Giá cao đến thấp</option><option value="name" {% if filters.sort == 'name' %}selected{% endif %}>Tên A–Z</option></select>
+      <button class="button button-dark filter-button" type="submit">Áp dụng</button>
+      <a class="reset-link" href="{% url 'product_list' %}">Xóa bộ lọc</a>
+    </form>
+  </aside>
+  <section class="collection-results" aria-label="Danh sách sản phẩm">
+    <div class="results-head"><span>{{ page_obj.paginator.count }} sản phẩm</span>{% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}</div>
+    {% if page_obj %}<div class="product-grid">{% for product in page_obj %}{% include 'products/_card.html' %}{% endfor %}</div>
+    {% else %}<p class="empty-state">Không tìm thấy sản phẩm phù hợp. Thử điều chỉnh bộ lọc.</p>{% endif %}
+    {% if page_obj.paginator.num_pages > 1 %}<nav class="pagination" aria-label="Phân trang">
+      {% if page_obj.has_previous %}<a href="?{{ query_string }}&page={{ page_obj.previous_page_number }}">← Trước</a>{% endif %}
+      <span>Trang {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a href="?{{ query_string }}&page={{ page_obj.next_page_number }}">Tiếp →</a>{% endif %}
+    </nav>{% endif %}
+  </section>
+</div>
+{% endblock %}

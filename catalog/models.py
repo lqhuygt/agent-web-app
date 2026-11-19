@@ -1,4 +1,5 @@
 from pathlib import Path
+import unicodedata
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -8,6 +9,12 @@ from PIL import Image, UnidentifiedImageError
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 ALLOWED_IMAGE_FORMATS = {'JPEG', 'PNG', 'WEBP'}
+
+
+def normalize_search_text(value):
+    value = value.casefold().replace('đ', 'd')
+    value = unicodedata.normalize('NFD', value)
+    return ' '.join(''.join(char for char in value if not unicodedata.combining(char)).split())
 
 
 def validate_product_image(upload):
@@ -42,6 +49,7 @@ class Category(models.Model):
 class Product(models.Model):
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='products')
     name = models.CharField(max_length=200)
+    search_name = models.CharField(max_length=200, blank=True, editable=False, db_index=True)
     slug = models.SlugField(unique=True)
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=0)
@@ -53,6 +61,12 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        self.search_name = normalize_search_text(self.name)
+        if kwargs.get('update_fields') is not None and 'name' in kwargs['update_fields']:
+            kwargs['update_fields'] = set(kwargs['update_fields']) | {'search_name'}
+        super().save(*args, **kwargs)
 
 
 class ProductImage(models.Model):

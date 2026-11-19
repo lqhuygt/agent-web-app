@@ -1,0 +1,26 @@
+{% extends 'base.html' %}{% load currency %}
+{% block title %}{{ product.name }} — FORM{% endblock %}
+{% block content %}
+<div class="shell breadcrumb"><a href="{% url 'product_list' %}">Sản phẩm</a><span>/</span><span>{{ product.name }}</span></div>
+<div class="shell detail-layout">
+  <div class="detail-gallery">
+    {% for picture in product.images.all %}<img src="{{ picture.image.url }}" alt="{{ picture.alt_text|default:product.name }}" {% if not forloop.first %}loading="lazy"{% endif %}>
+    {% empty %}<div class="detail-placeholder" aria-label="Chưa có ảnh sản phẩm"><span>FORM</span></div>{% endfor %}
+  </div>
+  <div class="detail-info">
+    <p class="eyebrow">{{ product.category.name }} / FORM</p><h1>{{ product.name }}</h1><p class="detail-price">{{ product.price|vnd }}</p>
+    {% if product.description %}<div class="description">{{ product.description|linebreaks }}</div>{% endif %}
+    <form action="{% url 'cart_add' %}" method="post" class="buy-form">
+      {% csrf_token %}
+      <label for="variant">Màu / Size</label>
+      <select id="variant" name="variant_id" required>
+        <option value="">Chọn biến thể</option>
+        {% for variant in variants %}<option value="{{ variant.id }}" {% if not variant.can_buy %}disabled{% endif %}>{{ variant.color }} / {{ variant.size }} — {% if not variant.active %}Tạm ngưng{% elif not variant.stock.quantity %}Hết hàng{% else %}Còn {{ variant.stock.quantity }}{% endif %} ({{ variant.sku }})</option>{% endfor %}
+      </select>
+      <label for="quantity">Số lượng <small>(tối đa 10/biến thể)</small></label><input id="quantity" name="quantity" type="number" min="1" max="10" value="1" required>
+      <button class="button button-dark" type="submit">Thêm vào giỏ hàng <span aria-hidden="true">↗</span></button>
+    </form>
+    {% if product.size_guide %}<div class="size-guide"><h2>Hướng dẫn size</h2>{{ product.size_guide|linebreaks }}</div>{% endif %}
+  </div>
+</div>
+{% endblock %}
