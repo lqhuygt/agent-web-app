@@ -18,6 +18,6 @@
       </article>
     {% endfor %}
     </div>
-    <div class="cart-summary"><div><span>Tạm tính</span><strong>{{ total|vnd }}</strong></div><p>Phí giao hàng sẽ được tính ở bước đặt hàng.</p><span class="checkout-note">Đặt hàng COD sẽ có ở giai đoạn tiếp theo.</span></div>
+    <div class="cart-summary"><div><span>Tạm tính</span><strong>{{ total|vnd }}</strong></div><p>Phí giao hàng được tính khi đặt hàng.</p><a class="button button-dark" href="{% url 'checkout' %}">Tiếp tục đặt hàng COD</a></div>
   {% else %}<div class="empty-state"><h2>Giỏ hàng trống</h2><p>Hãy chọn một món đồ phù hợp với bạn.</p><a class="button button-dark" href="{% url 'product_list' %}">Xem sản phẩm</a></div>{% endif %}
 </section>

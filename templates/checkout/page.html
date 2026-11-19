@@ -1,0 +1,19 @@
+{% extends 'base.html' %}{% load currency %}
+{% block title %}Đặt hàng — FORM{% endblock %}
+{% block content %}
+<section class="page-intro shell"><p class="eyebrow">FORM / COD</p><h1>Thông tin đặt hàng</h1><p>Không cần tạo tài khoản. Vui lòng kiểm tra lại thông tin trước khi gửi.</p></section>
+<div class="shell checkout-layout">
+  {% if not entries and form.non_field_errors %}<div class="form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  {% if entries %}
+  <form method="post" action="{% url 'checkout' %}" class="checkout-form">
+    {% csrf_token %}
+    {{ form.idempotency_key }}
+    {% if form.non_field_errors %}<div class="form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form.visible_fields %}<div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="form-error" role="alert">{{ field.errors }}</div>{% endif %}</div>{% endfor %}
+    <p class="checkout-note">Thanh toán khi nhận hàng (COD). Tồn kho được xác nhận khi tạo đơn.</p>
+    <button class="button button-dark" type="submit">Xác nhận đặt hàng</button>
+  </form>
+  <aside class="checkout-summary"><h2>Đơn hàng của bạn</h2>{% for entry in entries %}<div class="checkout-summary-line"><span>{{ entry.variant.product.name }} · {{ entry.variant.color }}/{{ entry.variant.size }} × {{ entry.quantity }}</span><strong>{{ entry.line_total|vnd }}</strong></div>{% endfor %}<div class="checkout-summary-line"><span>Tạm tính</span><strong>{{ total|vnd }}</strong></div><p>Phí vận chuyển và tổng thanh toán được máy chủ tính khi đặt hàng.</p></aside>
+  {% else %}<div class="empty-state"><h2>Giỏ hàng trống</h2><a class="button button-dark" href="{% url 'product_list' %}">Chọn sản phẩm</a></div>{% endif %}
+</div>
+{% endblock %}

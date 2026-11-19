@@ -26,7 +26,7 @@ class StockMovement(models.Model):
     after = models.PositiveIntegerField()
     reason = models.CharField(max_length=255)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT)
-    order = models.BigIntegerField(null=True, blank=True)
+    order = models.ForeignKey('orders.Order', null=True, blank=True, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

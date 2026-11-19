@@ -1,6 +1,6 @@
-# FORM local development — Tasks 1–3
+# FORM local development — Tasks 1–4
 
-This repository contains the local Django and PostgreSQL foundation, catalog, audited inventory, Django Admin management, storefront search and a session cart. Checkout is a later task.
+This repository contains the local Django and PostgreSQL foundation, catalog, audited inventory, Django Admin management, storefront search, a session cart and guest COD checkout. Order operations and cancellation are later tasks.
 
 ## Start on Windows PowerShell
 
@@ -70,4 +70,26 @@ docker compose run --rm web pytest -q
 
 Open `/` for the storefront, `/products/` for search and filters, and `/cart/` for your session cart. Search ignores Vietnamese accents, letter case and repeated spaces. Price filters accept whole, nonnegative VND values. The cart holds at most 10 units of each variant and checks current stock. Price and availability are read from PostgreSQL again when the cart is displayed. Cart forms work with normal page loads; the vendored HTMX 2.0.11 library updates the cart region in place when JavaScript is available. The library source is `https://cdn.jsdelivr.net/npm/htmx.org@2.0.11/dist/htmx.min.js`; its license is in `static/js/LICENSE.htmx.txt`.
 
-Task 3 does not place orders or reduce stock. COD checkout is Task 4. If a product is out of stock or hidden, adding it to the cart is rejected; an item already in the cart is marked unavailable when its stock changes.
+Adding an item to the cart does not place an order or reduce stock. If a product is out of stock or hidden, adding it to the cart is rejected; an item already in the cart is marked unavailable when its stock changes.
+
+## Guest COD checkout (Task 4)
+
+```powershell
+docker compose up -d --build
+docker compose exec web python manage.py migrate
+docker compose run --rm web pytest -q
+```
+
+From `/cart/`, use **Tiếp tục đặt hàng COD**. Enter a recipient name, phone and address; no customer account is required. A successful checkout creates an order and item snapshots, records one stock movement for each SKU, reduces stock and clears the cart. The shipping fee and total are calculated by the server from **Core → Shop settings**. A repeated submission of the same checkout returns the same order; changing its content with the same request key is rejected.
+
+The confirmation link uses a secret token. Keep it private: anyone with the link can view that order. An order number or phone number alone cannot open it. PostgreSQL stores only the token hash. Customer contact details and tracking tokens are not written to normal web access logs. Do not paste tracking links into public chats or screenshots.
+
+To inspect orders in PostgreSQL without printing customer contact data:
+
+```powershell
+docker compose exec db psql -U form -d form -c "SELECT display_number, status, subtotal, shipping_fee, total FROM orders_order ORDER BY id DESC LIMIT 5"
+docker compose exec db psql -U form -d form -c "SELECT o.display_number, i.snapshot_sku, i.quantity, i.unit_price, i.line_total FROM orders_orderitem i JOIN orders_order o ON o.id=i.order_id ORDER BY i.id DESC LIMIT 10"
+docker compose exec db psql -U form -d form -c "SELECT order_id, variant_id, delta, before, after FROM inventory_stockmovement WHERE order_id IS NOT NULL ORDER BY id DESC LIMIT 10"
+```
+
+One fake local browser-check order, `FORM-000001`, was created on SKU `FORM-DEMO-BLK-M`; its demo stock changed from 8 to 7. Order cancellation and stock restoration are Task 5.

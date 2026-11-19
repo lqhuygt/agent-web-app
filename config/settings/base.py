@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     'catalog',
     'inventory',
     'cart',
+    'orders',
 ]
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -58,3 +59,21 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {'redact_order_tokens': {'()': 'core.logging.RedactOrderTokens'}},
+    'handlers': {
+        'safe_console': {
+            'class': 'logging.StreamHandler',
+            'filters': ['redact_order_tokens'],
+            'formatter': 'simple',
+        },
+    },
+    'formatters': {'simple': {'format': '%(levelname)s %(message)s'}},
+    'loggers': {
+        'django.server': {'handlers': ['safe_console'], 'level': 'INFO', 'propagate': False},
+        'django.request': {'handlers': ['safe_console'], 'level': 'WARNING', 'propagate': False},
+    },
+}

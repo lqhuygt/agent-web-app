@@ -1,0 +1,10 @@
+{% extends 'base.html' %}{% load currency %}
+{% block title %}Đơn {{ order.display_number }} — FORM{% endblock %}
+{% block content %}
+<section class="page-intro shell"><p class="eyebrow">FORM / ĐƠN HÀNG</p><h1>Đặt hàng thành công</h1><p>Đơn của bạn đang chờ cửa hàng xác nhận.</p></section>
+<div class="shell order-detail">
+  <div class="order-notice"><strong>Giữ riêng liên kết này.</strong> Ai có liên kết đều có thể xem thông tin đơn hàng. Không chia sẻ liên kết cho người khác.</div>
+  <h2>{{ order.display_number }}</h2><p>Trạng thái: <strong>{{ order.get_status_display }}</strong></p>
+  <div class="order-columns"><div><h3>Thông tin nhận hàng</h3><p>{{ order.customer_name }}<br>{{ order.customer_phone }}<br>{{ order.shipping_address }}</p>{% if order.note %}<p>Ghi chú: {{ order.note }}</p>{% endif %}</div><div><h3>Sản phẩm</h3>{% for item in order.items.all %}<div class="checkout-summary-line"><span>{{ item.snapshot_name }} · {{ item.snapshot_color }}/{{ item.snapshot_size }} × {{ item.quantity }}</span><strong>{{ item.line_total|vnd }}</strong></div>{% endfor %}<div class="checkout-summary-line"><span>Tạm tính</span><strong>{{ order.subtotal|vnd }}</strong></div><div class="checkout-summary-line"><span>Phí giao hàng</span><strong>{{ order.shipping_fee|vnd }}</strong></div><div class="checkout-summary-line order-total"><span>Tổng COD</span><strong>{{ order.total|vnd }}</strong></div></div></div>
+</div>
+{% endblock %}
