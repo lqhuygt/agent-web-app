@@ -1,0 +1,8 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<p>Đơn {{ order.display_number }} — {{ order.get_status_display }}</p>
+<form method="post">{% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Lưu trạng thái</button>
+</form>
+{% endblock %}

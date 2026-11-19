@@ -8,7 +8,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import F
 
@@ -17,7 +17,7 @@ from core.models import ShopSettings
 from inventory.models import Stock, StockMovement
 
 from .exceptions import CheckoutConflict, InsufficientStock
-from .models import CheckoutAttempt, Order, OrderItem
+from .models import CheckoutAttempt, Order, OrderItem, OrderStatus, OrderStatusHistory
 
 
 @dataclass(frozen=True)
@@ -131,4 +131,44 @@ def place_order(*, session_key: str, idempotency_key: UUID, customer: CheckoutIn
     attempt.order = order
     attempt.save(update_fields=['order'])
     order._tracking_token = token
+    return order
+
+
+ALLOWED_TRANSITIONS = {
+    OrderStatus.PENDING: (OrderStatus.CONFIRMED, OrderStatus.CANCELLED),
+    OrderStatus.CONFIRMED: (OrderStatus.SHIPPING, OrderStatus.CANCELLED),
+    OrderStatus.SHIPPING: (OrderStatus.COMPLETED,),
+    OrderStatus.COMPLETED: (),
+    OrderStatus.CANCELLED: (),
+}
+
+
+@transaction.atomic
+def transition_order(*, order_id: int, target_status: OrderStatus, actor, reason: str = '') -> Order:
+    if not actor or not actor.is_authenticated or not actor.has_perm('orders.transition_order'):
+        raise PermissionDenied('Order transition permission required.')
+    if not isinstance(reason, str) or len(reason.strip()) > 255:
+        raise ValidationError('Lý do không hợp lệ hoặc quá dài.')
+    reason = reason.strip()
+    order = Order.objects.select_for_update().get(pk=order_id)
+    if order.status == target_status == OrderStatus.CANCELLED:
+        return order
+    if target_status not in ALLOWED_TRANSITIONS.get(order.status, ()):
+        raise ValidationError('Không thể chuyển sang trạng thái này.')
+    if target_status == OrderStatus.CANCELLED:
+        for item in order.items.order_by('variant_id', 'id'):
+            stock = Stock.objects.select_for_update().get(variant_id=item.variant_id)
+            before = stock.quantity
+            stock.quantity = before + item.quantity
+            stock.save(update_fields=['quantity'])
+            StockMovement.objects.create(
+                variant_id=item.variant_id, delta=item.quantity, before=before,
+                after=stock.quantity, reason=reason or 'Hủy đơn hàng', actor=actor, order=order,
+            )
+    previous = order.status
+    order.status = target_status
+    order.save(update_fields=['status'])
+    OrderStatusHistory.objects.create(
+        order=order, from_status=previous, to_status=target_status, actor=actor, reason=reason,
+    )
     return order

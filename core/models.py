@@ -18,3 +18,9 @@ class ShopSettings(models.Model):
 
     def __str__(self):
         return 'Shop settings'
+
+
+class RateLimitBucket(models.Model):
+    key = models.CharField(max_length=64, unique=True)
+    count = models.PositiveIntegerField(default=0)
+    window_started_at = models.DateTimeField()

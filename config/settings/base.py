@@ -20,6 +20,7 @@ INSTALLED_APPS = [
 ]
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'core.middleware.AttemptRateLimitMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -59,6 +60,9 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+FORM_ADMIN_LOGIN_LIMIT = int(os.environ.get('FORM_ADMIN_LOGIN_LIMIT', '10'))
+FORM_CHECKOUT_LIMIT = int(os.environ.get('FORM_CHECKOUT_LIMIT', '20'))
+FORM_RATE_WINDOW_SECONDS = max(1, int(os.environ.get('FORM_RATE_WINDOW_SECONDS', '900')))
 
 LOGGING = {
     'version': 1,

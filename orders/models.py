@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
@@ -25,6 +26,7 @@ class Order(models.Model):
 
     class Meta:
         ordering = ['-created_at', '-id']
+        permissions = [('transition_order', 'Can transition order status')]
         constraints = [
             models.CheckConstraint(condition=Q(subtotal__gte=0), name='order_subtotal_nonnegative'),
             models.CheckConstraint(condition=Q(shipping_fee__gte=0), name='order_shipping_nonnegative'),
@@ -55,6 +57,18 @@ class OrderItem(models.Model):
             models.CheckConstraint(condition=Q(quantity__gte=1), name='order_item_quantity_positive'),
             models.CheckConstraint(condition=Q(line_total=models.F('unit_price') * models.F('quantity')), name='order_item_total_balanced'),
         ]
+
+
+class OrderStatusHistory(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='status_history')
+    from_status = models.CharField(max_length=12, choices=OrderStatus.choices)
+    to_status = models.CharField(max_length=12, choices=OrderStatus.choices)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    reason = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
 
 
 class CheckoutAttempt(models.Model):

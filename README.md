@@ -1,6 +1,6 @@
-# FORM local development — Tasks 1–4
+# FORM local development — Tasks 1–5
 
-This repository contains the local Django and PostgreSQL foundation, catalog, audited inventory, Django Admin management, storefront search, a session cart and guest COD checkout. Order operations and cancellation are later tasks.
+This repository contains the local Django and PostgreSQL foundation, catalog, audited inventory, Django Admin management, storefront search, a session cart, guest COD checkout and order operations.
 
 ## Start on Windows PowerShell
 
@@ -92,4 +92,30 @@ docker compose exec db psql -U form -d form -c "SELECT o.display_number, i.snaps
 docker compose exec db psql -U form -d form -c "SELECT order_id, variant_id, delta, before, after FROM inventory_stockmovement WHERE order_id IS NOT NULL ORDER BY id DESC LIMIT 10"
 ```
 
-One fake local browser-check order, `FORM-000001`, was created on SKU `FORM-DEMO-BLK-M`; its demo stock changed from 8 to 7. Order cancellation and stock restoration are Task 5.
+One fake local browser-check order, `FORM-000001`, was created on SKU `FORM-DEMO-BLK-M`; its demo stock changed from 8 to 7 at checkout.
+
+## Order operations and staff roles (Task 5)
+
+After updating the source, apply migrations and create the staff role groups:
+
+```powershell
+docker compose up -d --build
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py setup_roles
+docker compose run --rm web pytest -q
+```
+
+In `/admin/`, open **Orders → Orders**. The order page shows customer details, item snapshots and totals without editable status or price fields. Use **Chuyển trạng thái** to move PENDING → CONFIRMED → SHIPPING → COMPLETED, or cancel while PENDING or CONFIRMED. Cancellation restores stock and records a positive stock movement once; a second cancellation does not restore again. **Order status histories** shows who changed a status, when, and the reason. **Inventory → Stock movements** shows the matching stock adjustment.
+
+The `setup_roles` command creates **Product manager**, **Inventory manager** and **Order manager** groups. Assign a staff account to a group in **Authentication and Authorization → Users**. It is safe to run the command again; it refreshes group permissions without creating users or resetting passwords. A superuser already has all permissions.
+
+Admin login POSTs are limited to 10 per IP and checkout POSTs to 20 per IP in a 15 minute window. Counts are stored in PostgreSQL and shared by web workers. Set `FORM_ADMIN_LOGIN_LIMIT`, `FORM_CHECKOUT_LIMIT` and `FORM_RATE_WINDOW_SECONDS` in `.env` to adjust them; zero for either limit disables that limit. A blocked request returns HTTP 429. The IP comes from the direct connection; forwarded headers are not trusted.
+
+Buyers can reopen their private order tracking link to see the current status. No buyer account or order history list exists in this approved guest checkout scope. Keep the tracking link private.
+
+Check the latest order changes and stock restoration in PostgreSQL without customer contact data:
+
+```powershell
+docker compose exec db psql -U form -d form -c "SELECT o.display_number, h.from_status, h.to_status, h.reason, h.created_at FROM orders_orderstatushistory h JOIN orders_order o ON o.id=h.order_id ORDER BY h.id DESC LIMIT 10"
+docker compose exec db psql -U form -d form -c "SELECT o.display_number, m.variant_id, m.delta, m.before, m.after FROM inventory_stockmovement m JOIN orders_order o ON o.id=m.order_id ORDER BY m.id DESC LIMIT 10"
+```
