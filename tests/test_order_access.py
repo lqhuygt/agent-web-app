@@ -3,12 +3,13 @@ from uuid import uuid4
 
 import pytest
 from django.test import Client
+from django.contrib.auth.models import Permission, User
 
 from catalog.models import Category, Product, ProductVariant
 from core.models import ShopSettings
 from inventory.models import Stock
-from orders.models import Order
-from orders.services import CartLine, CheckoutInput, place_order
+from orders.models import Order, OrderStatus
+from orders.services import CartLine, CheckoutInput, place_order, transition_order
 from core.logging import RedactOrderTokens
 
 
@@ -37,6 +38,21 @@ def test_tracking_requires_secret_token_and_escapes_customer_content(client, var
     assert '&lt;script&gt;' in body and '<script>alert' not in body
     assert 'https://' not in body
     assert 'Không chia sẻ liên kết' in body
+
+
+def test_tracking_page_shows_current_shipping_status_without_stale_pending_text(client, variant):
+    order = place_order(
+        session_key='buyer-status', idempotency_key=uuid4(),
+        customer=CheckoutInput('Nguyễn Văn An', '0912345678', '12 Nguyễn Huệ, Quận 1, TP HCM'),
+        lines=[CartLine(variant.pk, 1)],
+    )
+    manager = User.objects.create_user('order-manager', is_staff=True)
+    manager.user_permissions.add(Permission.objects.get(codename='transition_order'))
+    transition_order(order_id=order.pk, target_status=OrderStatus.CONFIRMED, actor=manager)
+    transition_order(order_id=order.pk, target_status=OrderStatus.SHIPPING, actor=manager)
+    body = client.get(f'/orders/track/{order.tracking_token}/').content.decode()
+    assert 'Trạng thái hiện tại: Đang giao' in body
+    assert 'Đơn của bạn đang chờ cửa hàng xác nhận.' not in body
 
 
 def test_guest_checkout_ignores_client_price_clears_cart_and_retries_safely(variant):

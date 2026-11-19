@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% load currency %}
 {% block title %}Đơn {{ order.display_number }} — FORM{% endblock %}
 {% block content %}
-<section class="page-intro shell"><p class="eyebrow">FORM / ĐƠN HÀNG</p><h1>Đặt hàng thành công</h1><p>Đơn của bạn đang chờ cửa hàng xác nhận.</p></section>
+<section class="page-intro shell"><p class="eyebrow">FORM / ĐƠN HÀNG</p><h1>Theo dõi đơn hàng</h1><p>Trạng thái hiện tại: {{ order.get_status_display }}.</p></section>
 <div class="shell order-detail">
   <div class="order-notice"><strong>Giữ riêng liên kết này.</strong> Ai có liên kết đều có thể xem thông tin đơn hàng. Không chia sẻ liên kết cho người khác.</div>
   <h2>{{ order.display_number }}</h2><p>Trạng thái: <strong>{{ order.get_status_display }}</strong></p>
