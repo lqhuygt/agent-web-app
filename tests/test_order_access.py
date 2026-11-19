@@ -55,6 +55,34 @@ def test_tracking_page_shows_current_shipping_status_without_stale_pending_text(
     assert 'Đơn của bạn đang chờ cửa hàng xác nhận.' not in body
 
 
+def test_tracking_landing_opens_recent_order_in_same_browser(variant):
+    client = Client()
+    client.post('/cart/add/', {'variant_id': variant.pk, 'quantity': 1})
+    key = client.get('/checkout/').context['idempotency_key']
+    checkout = client.post('/checkout/', {
+        'idempotency_key': key, 'name': 'Nguyễn Văn An', 'phone': '0912345678',
+        'address': '12 Nguyễn Huệ, Quận 1, TP HCM', 'note': '',
+    })
+    assert checkout.status_code == 302
+    landing = client.get('/orders/track/')
+    assert landing.status_code == 302
+    assert landing['Location'] == checkout['Location']
+    assert Client().get('/orders/track/').status_code == 200
+    assert Client().get('/orders/track', follow=True).status_code == 200
+
+
+def test_tracking_landing_does_not_reveal_order_to_another_session(variant):
+    order = place_order(
+        session_key='buyer-private', idempotency_key=uuid4(),
+        customer=CheckoutInput('Nguyễn Văn An', '0912345678', '12 Nguyễn Huệ, Quận 1, TP HCM'),
+        lines=[CartLine(variant.pk, 1)],
+    )
+    response = Client().get(f'/orders/track/?order_id={order.pk}')
+    assert response.status_code == 200
+    assert order.tracking_token not in response.content.decode()
+    assert order.display_number not in response.content.decode()
+
+
 def test_guest_checkout_ignores_client_price_clears_cart_and_retries_safely(variant):
     client = Client()
     client.post('/cart/add/', {'variant_id': variant.pk, 'quantity': 1})

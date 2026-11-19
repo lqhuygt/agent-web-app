@@ -1,5 +1,5 @@
 import re
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from django.core.exceptions import ValidationError
 from django.http import Http404
@@ -10,8 +10,8 @@ from cart.services import CART_SESSION_KEY, get_cart_entries
 
 from .exceptions import CheckoutConflict, InsufficientStock
 from .forms import CheckoutForm
-from .models import Order
-from .services import CartLine, CheckoutInput, place_order, token_hash
+from .models import CheckoutAttempt, Order
+from .services import CartLine, CheckoutInput, place_order, token_hash, tracking_token_for_attempt
 
 
 def _lines_from_cart(raw):
@@ -64,6 +64,25 @@ def checkout(request):
     request.session[CART_SESSION_KEY] = {}
     request.session.pop('checkout_key', None)
     return redirect('order_track', token=order.tracking_token)
+
+
+def track_landing(request):
+    last = request.session.get('last_checkout')
+    session_key = request.session.session_key
+    if isinstance(last, dict) and session_key:
+        try:
+            key = UUID(last.get('key', ''))
+        except (TypeError, ValueError, AttributeError):
+            key = None
+        if key:
+            attempt = CheckoutAttempt.objects.select_related('order').filter(
+                session_key=session_key, idempotency_key=key, order__isnull=False,
+            ).first()
+            if attempt:
+                token = tracking_token_for_attempt(session_key, key)
+                if token_hash(token) == attempt.order.tracking_token_hash:
+                    return redirect('order_track', token=token)
+    return render(request, 'orders/track_landing.html')
 
 
 def track_order(request, token):

@@ -48,7 +48,7 @@ class CheckoutInput:
         return CheckoutInput(name, phone, address, note)
 
 
-def _tracking_token(session_key, idempotency_key):
+def tracking_token_for_attempt(session_key, idempotency_key):
     message = f'FORM order tracking:{session_key}:{idempotency_key}'.encode()
     raw = hmac.new(settings.SECRET_KEY.encode(), message, hashlib.sha256).digest()
     return base64.urlsafe_b64encode(raw).rstrip(b'=').decode('ascii')
@@ -81,7 +81,7 @@ def place_order(*, session_key: str, idempotency_key: UUID, customer: CheckoutIn
     attempt = CheckoutAttempt.objects.select_for_update().get(pk=attempt.pk)
     if attempt.fingerprint != fingerprint:
         raise CheckoutConflict('Checkout key reused with different content.')
-    token = _tracking_token(session_key, idempotency_key)
+    token = tracking_token_for_attempt(session_key, idempotency_key)
     if attempt.order_id:
         order = attempt.order
         order._tracking_token = token

@@ -111,7 +111,7 @@ The `setup_roles` command creates **Product manager**, **Inventory manager** and
 
 Admin login POSTs are limited to 10 per IP and checkout POSTs to 20 per IP in a 15 minute window. Counts are stored in PostgreSQL and shared by web workers. Set `FORM_ADMIN_LOGIN_LIMIT`, `FORM_CHECKOUT_LIMIT` and `FORM_RATE_WINDOW_SECONDS` in `.env` to adjust them; zero for either limit disables that limit. A blocked request returns HTTP 429. The IP comes from the direct connection; forwarded headers are not trusted.
 
-Buyers can reopen their private order tracking link to see the current status. No buyer account or order history list exists in this approved guest checkout scope. Keep the tracking link private.
+Buyers can reopen their private order tracking link to see the current status. Visiting `/orders/track/` in the same browser session after checkout redirects to the most recent order; without that session, the page explains how to find the saved link. No buyer account or order history list exists in this approved guest checkout scope. Keep the tracking link private.
 
 Check the latest order changes and stock restoration in PostgreSQL without customer contact data:
 
