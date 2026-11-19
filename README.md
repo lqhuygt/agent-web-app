@@ -1,121 +1,100 @@
-# FORM local development — Tasks 1–5
+# FORM — chạy local từ một máy Windows mới
 
-This repository contains the local Django and PostgreSQL foundation, catalog, audited inventory, Django Admin management, storefront search, a session cart, guest COD checkout and order operations.
+FORM là cửa hàng một người bán dùng Django, HTMX và PostgreSQL. Source hiện có Task 1–5: quản trị sản phẩm và kho, cửa hàng, giỏ hàng theo session, đặt hàng COD không cần tài khoản, theo dõi và xử lý đơn. Task 6 trong [kế hoạch](docs/superpowers/plans/FORM_Project_Plan_v1.md) chưa triển khai. [Bàn giao cho phiên Codex mới](docs/HANDOFF_CODEX.md) ghi các quyết định và hiện trạng.
 
-## Start on Windows PowerShell
+## 1. Chuẩn bị
 
-Docker Desktop must be running with its Linux engine. From the repository root:
+- Máy Windows có Git và Docker Desktop; bật **Linux containers** và chờ Docker Engine chạy.
+- Cổng `127.0.0.1:8000` còn trống. PostgreSQL chỉ nằm trong mạng Docker, không mở cổng ra máy ngoài.
+- Mở **PowerShell** trong thư mục muốn lưu project. Các lệnh dưới đây chạy trên máy host, không chạy trong WSL.
+
+## 2. Lấy source và tạo cấu hình riêng
 
 ```powershell
+git clone -b task1-local https://github.com/lqhuygt/agent-web-app.git
+Set-Location agent-web-app
 Copy-Item .env.example .env
+notepad .env
 ```
 
-Edit `.env` and replace both placeholder secrets with unique random values. Keep `.env` local; it is ignored by Git. Then:
+Trong `.env`, thay `DJANGO_SECRET_KEY` và `POSTGRES_PASSWORD` mẫu bằng hai giá trị ngẫu nhiên, dài và khác nhau; không để nguyên chữ `replace-with-...`. Giữ `.env` trên máy cá nhân, không commit hoặc gửi qua chat. Các giá trị `POSTGRES_DB=form`, `POSTGRES_USER=form` và `DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1` dùng được cho localhost. Các biến `FORM_*_LIMIT` ở cuối file là giới hạn lượt thử có thể tùy chỉnh sau.
+
+Máy mới tạo **database và media volume mới**. Source trên GitHub không chứa đơn hàng, tài khoản quản trị, ảnh tải lên hoặc `.env` của máy cũ. Nếu bạn chỉ cần chạy lại từ đầu thì không phải chuyển dữ liệu.
+
+## 3. Khởi động và khởi tạo database
 
 ```powershell
 docker compose up -d --build
+docker compose ps
 docker compose exec web python manage.py migrate
+docker compose exec web python manage.py setup_roles
 docker compose exec web python manage.py createsuperuser
+```
+
+Lệnh `createsuperuser` hỏi tên đăng nhập, email và mật khẩu; tự đặt mật khẩu, không có tài khoản mặc định. `setup_roles` tạo các nhóm **Product manager**, **Inventory manager**, **Order manager**; chạy lại được mà không tạo lại user. Nếu muốn có sản phẩm mẫu để thử luồng mua, chạy thêm:
+
+```powershell
+docker compose exec web python manage.py seed_demo
+```
+
+`seed_demo` tạo sản phẩm quần mẫu với các biến thể màu/size và tồn ban đầu. Có thể chạy lại mà không ghi đè giá hoặc số lượng đã sửa. Trong Admin, đặt phí giao hàng tại **Core → Shop settings** nếu muốn kiểm tra tính phí.
+
+## 4. Kiểm tra sau khi chạy
+
+```powershell
+docker compose exec web python manage.py check
 docker compose run --rm web pytest -q
 ```
 
-Open <http://localhost:8000/health/live/> and <http://localhost:8000/health/ready/>. Both should return HTTP 200 while the database is running. Admin login is at <http://localhost:8000/admin/>. There is no default admin password. The database is private to the Compose network; only the web port is bound to `127.0.0.1`.
+`pytest` dùng PostgreSQL test database riêng, không sửa database cửa hàng. Mở các địa chỉ:
 
-Source code reloads automatically in local development. Ordinary stop/start:
+| Địa chỉ | Kiểm tra |
+| --- | --- |
+| <http://localhost:8000/health/live/> | App đang chạy, HTTP 200 |
+| <http://localhost:8000/health/ready/> | App kết nối PostgreSQL, HTTP 200 |
+| <http://localhost:8000/> | Trang chủ |
+| <http://localhost:8000/products/> | Sản phẩm và tìm kiếm |
+| <http://localhost:8000/admin/> | Đăng nhập bằng superuser vừa tạo |
+| <http://localhost:8000/orders/track/> | Theo dõi đơn gần nhất trong cùng phiên mua hoặc hướng dẫn tìm liên kết |
+
+Trong Admin, tạo danh mục, sản phẩm, biến thể và ảnh tại **Catalog**. Điều chỉnh tồn tại **Inventory → Stocks → Adjust stock**; mỗi lần điều chỉnh có lịch sử. Thêm vào giỏ chưa trừ tồn. Đặt hàng COD thành công mới trừ tồn và tạo `Order` cùng `StockMovement`.
+
+Để xử lý đơn, vào **Orders → Orders → Chuyển trạng thái**. Luồng hợp lệ là `PENDING → CONFIRMED → SHIPPING → COMPLETED`; có thể hủy khi `PENDING` hoặc `CONFIRMED`. Hủy hoàn tồn đúng một lần và ghi lịch sử trạng thái. Người mua xem trạng thái qua liên kết riêng được cấp sau checkout; ai có liên kết đều xem được đơn, nên cần giữ riêng. Khách không có danh sách lịch sử mua hoặc tài khoản.
+
+## 5. Làm việc tiếp và cập nhật source
+
+Trước khi bắt đầu công việc mới trên máy khác, mở repo trong VS Code/Codex và cho Codex đọc [file bàn giao](docs/HANDOFF_CODEX.md) cùng kế hoạch. Không tự triển khai Task 6 khi chưa có yêu cầu của chủ dự án.
+
+Khi GitHub có commit mới, từ thư mục project chạy:
+
+```powershell
+git status --short
+git pull --ff-only
+docker compose up -d --build
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py setup_roles
+```
+
+Nếu `git status --short` có thay đổi, kiểm tra trước khi pull để tránh ghi đè công việc đang làm. Trên repo này, nhánh hiện được đẩy lên GitHub là `task1-local`.
+
+## 6. Dừng và xử lý lỗi thường gặp
 
 ```powershell
 docker compose stop
 docker compose start
+docker compose logs --tail=100 db web
 ```
 
-Use `docker compose down` when you want to remove containers. Do **not** add `-v` for routine restarts: that removes the named PostgreSQL and media volumes. `postgres_data` holds database records and `media_data` holds uploaded files. Backups and restore tooling are scheduled for Task 6.
+`docker compose stop/start` giữ nguyên dữ liệu. Có thể dùng `docker compose down` để gỡ container, nhưng **không thêm `-v`** nếu muốn giữ PostgreSQL và media volume. Công cụ backup/restore đầy đủ thuộc Task 6.
 
-## Quick checks
+Nếu `docker compose up` báo không kết nối Docker, mở Docker Desktop và chờ Engine hoạt động. Nếu cổng 8000 đang bận, dừng chương trình chiếm cổng rồi chạy lại Compose. Nếu `/health/ready/` trả 503, kiểm tra `docker compose ps` và log `db`, `web`. Trang theo dõi đơn của một khách phải có URL token riêng dạng `/orders/track/<token>/`; `/orders/track/` chỉ mở đơn gần nhất khi còn cùng phiên trình duyệt.
 
-```powershell
-docker compose ps
-docker compose exec web python manage.py check
-docker compose exec web python manage.py showmigrations
-docker compose run --rm web pytest tests/test_health.py -q
-```
+## Truy vấn DB để đối chiếu
 
-The test runner creates a separate PostgreSQL test database and does not run against shop data. If port 8000 is busy, stop the other process before starting Compose. If readiness returns 503, inspect `docker compose ps` and `docker compose logs db web`.
-
-Production settings are a separate Django module, but hosting is outside this task. The local Compose service runs Django's development server only.
-
-## Catalog and inventory (Task 2)
-
-After pulling Task 2 changes, apply migrations and load the optional demo product:
-
-```powershell
-docker compose up -d --build
-docker compose exec web python manage.py migrate
-docker compose exec web python manage.py seed_demo
-docker compose run --rm web pytest -q
-```
-
-`seed_demo` creates one marked demo trouser product with black and navy colors, M and L sizes, and initial stock. It can be run again without duplicating those records or replacing prices and quantities you edited. It creates no admin account or default password. Demo prices and stock are for local testing only.
-
-In `/admin/`, manage categories and products under **Catalog**. Product pages allow variants and JPEG, PNG or WebP images up to 5 MiB. Under **Inventory → Stocks**, use **Adjust stock** and enter a signed quantity change and reason; the movement appears in **Stock movements**. Quantity and movement records cannot be edited directly in Admin. Staff must have the `inventory | stock | Can adjust stock` permission; the superuser already has it. The **low stock** filter uses each SKU's threshold. Shop shipping fee and free-shipping threshold live under **Core → Shop settings**.
-
-## Storefront and cart (Task 3)
-
-After updating the source, run migrations and restart web if needed:
-
-```powershell
-docker compose up -d --build
-docker compose exec web python manage.py migrate
-docker compose run --rm web pytest -q
-```
-
-Open `/` for the storefront, `/products/` for search and filters, and `/cart/` for your session cart. Search ignores Vietnamese accents, letter case and repeated spaces. Price filters accept whole, nonnegative VND values. The cart holds at most 10 units of each variant and checks current stock. Price and availability are read from PostgreSQL again when the cart is displayed. Cart forms work with normal page loads; the vendored HTMX 2.0.11 library updates the cart region in place when JavaScript is available. The library source is `https://cdn.jsdelivr.net/npm/htmx.org@2.0.11/dist/htmx.min.js`; its license is in `static/js/LICENSE.htmx.txt`.
-
-Adding an item to the cart does not place an order or reduce stock. If a product is out of stock or hidden, adding it to the cart is rejected; an item already in the cart is marked unavailable when its stock changes.
-
-## Guest COD checkout (Task 4)
-
-```powershell
-docker compose up -d --build
-docker compose exec web python manage.py migrate
-docker compose run --rm web pytest -q
-```
-
-From `/cart/`, use **Tiếp tục đặt hàng COD**. Enter a recipient name, phone and address; no customer account is required. A successful checkout creates an order and item snapshots, records one stock movement for each SKU, reduces stock and clears the cart. The shipping fee and total are calculated by the server from **Core → Shop settings**. A repeated submission of the same checkout returns the same order; changing its content with the same request key is rejected.
-
-The confirmation link uses a secret token. Keep it private: anyone with the link can view that order. An order number or phone number alone cannot open it. PostgreSQL stores only the token hash. Customer contact details and tracking tokens are not written to normal web access logs. Do not paste tracking links into public chats or screenshots.
-
-To inspect orders in PostgreSQL without printing customer contact data:
+Các lệnh sau không in tên, điện thoại hoặc địa chỉ khách:
 
 ```powershell
 docker compose exec db psql -U form -d form -c "SELECT display_number, status, subtotal, shipping_fee, total FROM orders_order ORDER BY id DESC LIMIT 5"
-docker compose exec db psql -U form -d form -c "SELECT o.display_number, i.snapshot_sku, i.quantity, i.unit_price, i.line_total FROM orders_orderitem i JOIN orders_order o ON o.id=i.order_id ORDER BY i.id DESC LIMIT 10"
+docker compose exec db psql -U form -d form -c "SELECT o.display_number, h.from_status, h.to_status, h.created_at FROM orders_orderstatushistory h JOIN orders_order o ON o.id=h.order_id ORDER BY h.id DESC LIMIT 10"
 docker compose exec db psql -U form -d form -c "SELECT order_id, variant_id, delta, before, after FROM inventory_stockmovement WHERE order_id IS NOT NULL ORDER BY id DESC LIMIT 10"
-```
-
-One fake local browser-check order, `FORM-000001`, was created on SKU `FORM-DEMO-BLK-M`; its demo stock changed from 8 to 7 at checkout.
-
-## Order operations and staff roles (Task 5)
-
-After updating the source, apply migrations and create the staff role groups:
-
-```powershell
-docker compose up -d --build
-docker compose exec web python manage.py migrate
-docker compose exec web python manage.py setup_roles
-docker compose run --rm web pytest -q
-```
-
-In `/admin/`, open **Orders → Orders**. The order page shows customer details, item snapshots and totals without editable status or price fields. Use **Chuyển trạng thái** to move PENDING → CONFIRMED → SHIPPING → COMPLETED, or cancel while PENDING or CONFIRMED. Cancellation restores stock and records a positive stock movement once; a second cancellation does not restore again. **Order status histories** shows who changed a status, when, and the reason. **Inventory → Stock movements** shows the matching stock adjustment.
-
-The `setup_roles` command creates **Product manager**, **Inventory manager** and **Order manager** groups. Assign a staff account to a group in **Authentication and Authorization → Users**. It is safe to run the command again; it refreshes group permissions without creating users or resetting passwords. A superuser already has all permissions.
-
-Admin login POSTs are limited to 10 per IP and checkout POSTs to 20 per IP in a 15 minute window. Counts are stored in PostgreSQL and shared by web workers. Set `FORM_ADMIN_LOGIN_LIMIT`, `FORM_CHECKOUT_LIMIT` and `FORM_RATE_WINDOW_SECONDS` in `.env` to adjust them; zero for either limit disables that limit. A blocked request returns HTTP 429. The IP comes from the direct connection; forwarded headers are not trusted.
-
-Buyers can reopen their private order tracking link to see the current status. Visiting `/orders/track/` in the same browser session after checkout redirects to the most recent order; without that session, the page explains how to find the saved link. No buyer account or order history list exists in this approved guest checkout scope. Keep the tracking link private.
-
-Check the latest order changes and stock restoration in PostgreSQL without customer contact data:
-
-```powershell
-docker compose exec db psql -U form -d form -c "SELECT o.display_number, h.from_status, h.to_status, h.reason, h.created_at FROM orders_orderstatushistory h JOIN orders_order o ON o.id=h.order_id ORDER BY h.id DESC LIMIT 10"
-docker compose exec db psql -U form -d form -c "SELECT o.display_number, m.variant_id, m.delta, m.before, m.after FROM inventory_stockmovement m JOIN orders_order o ON o.id=m.order_id ORDER BY m.id DESC LIMIT 10"
 ```
