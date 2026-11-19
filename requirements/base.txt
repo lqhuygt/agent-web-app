@@ -4,4 +4,5 @@ packaging==26.3
 psycopg==3.2.10
 psycopg-binary==3.2.10
 gunicorn==23.0.0
+Pillow==11.3.0
 sqlparse==0.6.1

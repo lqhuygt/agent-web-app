@@ -1,6 +1,6 @@
-# FORM local development — Task 1
+# FORM local development — Tasks 1–2
 
-This repository currently contains the local Django and PostgreSQL foundation. Catalog, inventory and checkout are later tasks.
+This repository contains the local Django and PostgreSQL foundation, catalog, audited inventory and Django Admin management. Storefront and checkout are later tasks.
 
 ## Start on Windows PowerShell
 
@@ -42,3 +42,18 @@ docker compose run --rm web pytest tests/test_health.py -q
 The test runner creates a separate PostgreSQL test database and does not run against shop data. If port 8000 is busy, stop the other process before starting Compose. If readiness returns 503, inspect `docker compose ps` and `docker compose logs db web`.
 
 Production settings are a separate Django module, but hosting is outside this task. The local Compose service runs Django's development server only.
+
+## Catalog and inventory (Task 2)
+
+After pulling Task 2 changes, apply migrations and load the optional demo product:
+
+```powershell
+docker compose up -d --build
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py seed_demo
+docker compose run --rm web pytest -q
+```
+
+`seed_demo` creates one marked demo trouser product with black and navy colors, M and L sizes, and initial stock. It can be run again without duplicating those records or replacing prices and quantities you edited. It creates no admin account or default password. Demo prices and stock are for local testing only.
+
+In `/admin/`, manage categories and products under **Catalog**. Product pages allow variants and JPEG, PNG or WebP images up to 5 MiB. Under **Inventory → Stocks**, use **Adjust stock** and enter a signed quantity change and reason; the movement appears in **Stock movements**. Quantity and movement records cannot be edited directly in Admin. Staff must have the `inventory | stock | Can adjust stock` permission; the superuser already has it. The **low stock** filter uses each SKU's threshold. Shop shipping fee and free-shipping threshold live under **Core → Shop settings**.

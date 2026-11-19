@@ -1,0 +1,10 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Adjust stock: {{ stock.variant.sku }}</h1>
+<p>Current quantity: {{ stock.quantity }}</p>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Save adjustment</button>
+</form>
+{% endblock %}
