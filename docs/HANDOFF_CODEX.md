@@ -24,7 +24,7 @@ Tài liệu này là bản tóm tắt có thể commit, **không phải bản ch
 - Chủ dự án đã trực tiếp thử tạo user, quản trị catalog/kho, giỏ hàng, đặt đơn và kiểm tra đơn/tồn trong DB. Quy tắc trừ tồn **khi đặt đơn** đã được chủ dự án nhắc lại và xác nhận.
 - Chủ dự án đã chuyển một đơn sang `SHIPPING` và kiểm tra lịch sử trạng thái. Sau đó đã yêu cầu sửa `/orders/track/` để không còn 404 và sửa dòng trạng thái cố định trên trang theo dõi; các sửa đổi này đã ở Git.
 - Chủ dự án muốn làm tiếp trên máy khác **chỉ với source**, không chuyển database, ảnh, user hoặc `.env` của máy cũ. Máy mới sẽ bắt đầu với DB trống và cần tạo superuser mới.
-- **Task 6 chưa bắt đầu.** Không tự coi các mục kiểm thử tải, browser E2E, backup/restore, CI hay hosting là đã hoàn thành. Chờ yêu cầu tiếp theo của chủ dự án; hosting vẫn ngoài phạm vi hiện tại.
+- **Task 6 chưa được bàn giao.** Ngày 20/11/2026 đã có một lượt thử Task 6 tạm thời, nhưng chủ dự án yêu cầu xóa toàn bộ mã kiểm thử, Compose test, script và tài liệu của lượt thử đó trước khi bàn giao Git. Nhánh này chỉ chứa Task 1–5; không coi kiểm thử tải, browser E2E, backup/restore hoặc CI của Task 6 là đã có trong source. Chỉ tiếp tục Task 6 khi chủ dự án yêu cầu; hosting vẫn ngoài phạm vi hiện tại.
 
 ## Điểm bắt đầu cho Codex phiên mới
 
